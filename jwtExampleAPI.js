@@ -4,12 +4,25 @@ const bcrypt = require('bcrypt');
 const passport = require('passport');
 const BasicStrategy = require('passport-http').BasicStrategy;
 const jwt = require('jsonwebtoken');
+const JwtStrategy = require('passport-jwt').Strategy;
+const ExtractJwt = require('passport-jwt').ExtractJwt;
+
 const app = express()
 const port = 3000
 
 const users = []; // in-memory user storage
 
 app.use(bodyParser.json());
+
+let opts = {};
+opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
+opts.secretOrKey = "SECRET_SIGNING_KEY";
+passport.use(new JwtStrategy(opts, function(jwt_payload, done) {
+    // here we can do further verification if needed
+    // for example, we can check if the userId in jwt_payload exists in our user database
+    console.log('JWT payload received:', jwt_payload);
+    return done(null, jwt_payload);
+}))
 
 // configure passport to use HTTP Basic strategy
 passport.use(new BasicStrategy(function(username, password, done) {
@@ -81,7 +94,12 @@ app.get('/login',
     });
 
 // jwt protected resource
-app.get('/protectedResource', (req, res) => {});
+app.get('/protectedResource', 
+    passport.authenticate('jwt', { session: false }),
+    (req, res) => {
+        console.log('Protected resource accessed');
+        res.send('You have accessed a protected resource');
+});
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
