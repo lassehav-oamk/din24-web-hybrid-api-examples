@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const passport = require('passport');
 const BasicStrategy = require('passport-http').BasicStrategy;
+const jwt = require('jsonwebtoken');
 const app = express()
 const port = 3000
 
@@ -71,7 +72,12 @@ app.get('/login',
     passport.authenticate('basic', { session: false }),
     (req, res) => {
         console.log('route handler for login')
-        res.send('login successful');
+        const token = jwt.sign({
+            foo: "bar",
+            userId: 1
+        }, "SECRET_SIGNING_KEY");
+
+        res.json({token: token});
     });
 
 // jwt protected resource
