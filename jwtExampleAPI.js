@@ -1,12 +1,38 @@
 const express = require('express')
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
+const passport = require('passport');
+const BasicStrategy = require('passport-http').BasicStrategy;
 const app = express()
 const port = 3000
 
 const users = []; // in-memory user storage
 
 app.use(bodyParser.json());
+
+// configure passport to use HTTP Basic strategy
+passport.use(new BasicStrategy(function(username, password, done) {
+    console.log('passport-http verify function, username:', username, 'password:', password);
+    // find the user by username
+    const user = users.find(u => u.username === username);
+    if(user == undefined) {
+        // user not found, reject the request
+        return done(null, false);
+    } else {
+        // user found, verify the password
+        bcrypt.compare(password, user.passwordHash, (err, result) => {
+            if(result === true) {
+                // password match
+                return done(null, user);
+            } else {
+                // password does not match
+                return done(null, false);
+            }
+        });
+    }
+
+}));
+
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
@@ -41,7 +67,12 @@ app.post('/register', (req, res) => {
 });
 
 // http basic auth, response contains JWT 
-app.get('/login', (req, res) => {});
+app.get('/login', 
+    passport.authenticate('basic', { session: false }),
+    (req, res) => {
+        console.log('route handler for login')
+        res.send('login successful');
+    });
 
 // jwt protected resource
 app.get('/protectedResource', (req, res) => {});
